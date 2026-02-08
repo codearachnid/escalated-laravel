@@ -61,7 +61,19 @@ Visit `/support` — you're live.
 
 Escalated ships a Vue component library and default pages via the [`@escalated-dev/escalated`](https://github.com/escalated-dev/escalated) npm package.
 
-### 1. Page Resolver
+### 1. Tailwind Content
+
+Add the Escalated package to your Tailwind `content` config so its classes aren't purged:
+
+```js
+// tailwind.config.js
+content: [
+    // ... your existing paths
+    './node_modules/@escalated-dev/escalated/src/**/*.vue',
+],
+```
+
+### 2. Page Resolver
 
 Add the Escalated page resolver to your `app.ts`:
 
@@ -89,7 +101,7 @@ createInertiaApp({
 });
 ```
 
-### 2. Theming (Optional)
+### 3. Theming (Optional)
 
 Register the `EscalatedPlugin` to render Escalated pages inside your app's layout — no page duplication needed:
 
