@@ -7,13 +7,28 @@ use Escalated\Laravel\Http\Controllers\AdminReportController;
 use Escalated\Laravel\Http\Controllers\AdminSettingsController;
 use Escalated\Laravel\Http\Controllers\AdminSlaPolicyController;
 use Escalated\Laravel\Http\Controllers\AdminTagController;
+use Escalated\Laravel\Http\Controllers\AdminTicketController;
 use Escalated\Laravel\Http\Middleware\EnsureIsAdmin;
+use Escalated\Laravel\Http\Middleware\ResolveTicketByReference;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(array_merge(config('escalated.routes.admin_middleware', ['web', 'auth']), [EnsureIsAdmin::class]))
     ->prefix(config('escalated.routes.prefix', 'support').'/admin')
     ->group(function () {
         Route::get('/reports', AdminReportController::class)->name('escalated.admin.reports');
+
+        Route::get('/tickets', [AdminTicketController::class, 'index'])->name('escalated.admin.tickets.index');
+
+        Route::middleware(ResolveTicketByReference::class)->group(function () {
+            Route::get('/tickets/{ticket}', [AdminTicketController::class, 'show'])->name('escalated.admin.tickets.show');
+            Route::post('/tickets/{ticket}/reply', [AdminTicketController::class, 'reply'])->name('escalated.admin.tickets.reply');
+            Route::post('/tickets/{ticket}/note', [AdminTicketController::class, 'note'])->name('escalated.admin.tickets.note');
+            Route::post('/tickets/{ticket}/assign', [AdminTicketController::class, 'assign'])->name('escalated.admin.tickets.assign');
+            Route::post('/tickets/{ticket}/status', [AdminTicketController::class, 'status'])->name('escalated.admin.tickets.status');
+            Route::post('/tickets/{ticket}/priority', [AdminTicketController::class, 'priority'])->name('escalated.admin.tickets.priority');
+            Route::post('/tickets/{ticket}/tags', [AdminTicketController::class, 'tags'])->name('escalated.admin.tickets.tags');
+            Route::post('/tickets/{ticket}/department', [AdminTicketController::class, 'department'])->name('escalated.admin.tickets.department');
+        });
 
         Route::get('/settings', [AdminSettingsController::class, 'index'])->name('escalated.admin.settings');
         Route::post('/settings', [AdminSettingsController::class, 'update'])->name('escalated.admin.settings.update');

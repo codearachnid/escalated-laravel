@@ -174,7 +174,7 @@ class Ticket extends Model
 
     public static function generateReference(): string
     {
-        $prefix = 'ESC';
+        $prefix = EscalatedSettings::get('ticket_reference_prefix', 'ESC');
         $latest = static::withTrashed()->max('id') ?? 0;
 
         return sprintf('%s-%05d', $prefix, $latest + 1);
