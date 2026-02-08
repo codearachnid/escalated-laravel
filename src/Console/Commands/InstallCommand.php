@@ -3,6 +3,7 @@
 namespace Escalated\Laravel\Console\Commands;
 
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Process;
 
 class InstallCommand extends Command
 {
@@ -45,6 +46,7 @@ class InstallCommand extends Command
 
         if ($publishAll) {
             $this->publishEmailViews($force);
+            $this->installNpmPackage();
         }
 
         $this->newLine();
@@ -103,6 +105,20 @@ class InstallCommand extends Command
         });
     }
 
+    protected function installNpmPackage(): void
+    {
+        $this->components->task('Installing npm package', function () {
+            $result = Process::run('npm install @escalated-dev/escalated');
+
+            if (! $result->successful()) {
+                $this->components->warn('Could not install npm package automatically. Run manually:');
+                $this->line('  npm install @escalated-dev/escalated');
+
+                return false;
+            }
+        });
+    }
+
     protected function outputSetupInstructions(): void
     {
         $this->components->info('Escalated installed successfully!');
@@ -129,7 +145,37 @@ class InstallCommand extends Command
         $this->newLine();
         $this->line('     php artisan migrate');
         $this->newLine();
-        $this->line('  4. Visit /support to see the customer portal');
+        $this->line('  4. Add Escalated pages to your Tailwind content config:');
+        $this->newLine();
+        $this->line('     // tailwind.config.js');
+        $this->line('     content: [');
+        $this->line('         // ...existing paths,');
+        $this->line('         \'./node_modules/@escalated-dev/escalated/src/**/*.vue\',');
+        $this->line('     ]');
+        $this->newLine();
+        $this->line('  5. Add the Inertia page resolver and plugin in your app.ts:');
+        $this->newLine();
+        $this->line('     import { EscalatedPlugin } from \'@escalated-dev/escalated\';');
+        $this->newLine();
+        $this->line('     // In createInertiaApp resolve:');
+        $this->line('     const escalatedPages = import.meta.glob(');
+        $this->line('         \'../../node_modules/@escalated-dev/escalated/src/pages/**/*.vue\'');
+        $this->line('     );');
+        $this->line('     resolve: (name) => {');
+        $this->line('         if (name.startsWith(\'Escalated/\')) {');
+        $this->line('             const path = name.replace(\'Escalated/\', \'\');');
+        $this->line('             return resolvePageComponent(');
+        $this->line('                 `../../node_modules/@escalated-dev/escalated/src/pages/${path}.vue`,');
+        $this->line('                 escalatedPages');
+        $this->line('             );');
+        $this->line('         }');
+        $this->line('         // ...existing resolver');
+        $this->line('     }');
+        $this->newLine();
+        $this->line('     // In setup:');
+        $this->line('     app.use(EscalatedPlugin, { layout: YourAppLayout })');
+        $this->newLine();
+        $this->line('  6. Visit /support to see the customer portal');
         $this->newLine();
     }
 }

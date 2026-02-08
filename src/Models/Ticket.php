@@ -20,6 +20,11 @@ class Ticket extends Model
 
     protected $guarded = ['id'];
 
+    public function getRouteKeyName(): string
+    {
+        return 'reference';
+    }
+
     protected function casts(): array
     {
         return [
