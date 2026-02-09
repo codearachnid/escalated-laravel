@@ -16,6 +16,12 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 class LocalDriver implements TicketDriver
 {
+    protected const ALLOWED_SORT_COLUMNS = [
+        'created_at', 'updated_at', 'status', 'priority',
+        'subject', 'reference', 'assigned_to', 'department_id',
+        'resolved_at', 'closed_at',
+    ];
+
     public function __construct(protected AttachmentService $attachmentService) {}
 
     public function createTicket(Ticketable $requester, array $data): Ticket
@@ -201,7 +207,12 @@ class LocalDriver implements TicketDriver
         }
 
         $sortBy = $filters['sort_by'] ?? 'created_at';
-        $sortDir = $filters['sort_dir'] ?? 'desc';
+        $sortDir = strtolower($filters['sort_dir'] ?? 'desc') === 'asc' ? 'asc' : 'desc';
+
+        if (! in_array($sortBy, self::ALLOWED_SORT_COLUMNS, true)) {
+            $sortBy = 'created_at';
+        }
+
         $query->orderBy($sortBy, $sortDir);
 
         return $query->paginate($filters['per_page'] ?? 15);

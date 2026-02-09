@@ -40,7 +40,14 @@ class AdminSettingsController extends Controller
             'imap_mailbox' => ['sometimes', 'nullable', 'string', 'max:255'],
         ]);
 
+        $sensitiveKeys = ['mailgun_signing_key', 'postmark_inbound_token', 'imap_password'];
+
         foreach ($validated as $key => $value) {
+            // Skip sensitive fields that still contain the masked placeholder
+            if (in_array($key, $sensitiveKeys, true) && $this->isMaskedValue($value)) {
+                continue;
+            }
+
             EscalatedSettings::set($key, is_bool($value) ? ($value ? '1' : '0') : (string) $value);
         }
 
@@ -59,16 +66,47 @@ class AdminSettingsController extends Controller
             'inbound_email_enabled' => EscalatedSettings::getBool('inbound_email_enabled', (bool) config('escalated.inbound_email.enabled', false)),
             'inbound_email_adapter' => EscalatedSettings::get('inbound_email_adapter', config('escalated.inbound_email.adapter', 'mailgun')),
             'inbound_email_address' => EscalatedSettings::get('inbound_email_address', config('escalated.inbound_email.address', '')),
-            'mailgun_signing_key' => EscalatedSettings::get('mailgun_signing_key', config('escalated.inbound_email.mailgun.signing_key', '')),
-            'postmark_inbound_token' => EscalatedSettings::get('postmark_inbound_token', config('escalated.inbound_email.postmark.token', '')),
+            'mailgun_signing_key' => $this->maskSecret(EscalatedSettings::get('mailgun_signing_key', config('escalated.inbound_email.mailgun.signing_key', ''))),
+            'postmark_inbound_token' => $this->maskSecret(EscalatedSettings::get('postmark_inbound_token', config('escalated.inbound_email.postmark.token', ''))),
             'ses_region' => EscalatedSettings::get('ses_region', config('escalated.inbound_email.ses.region', 'us-east-1')),
             'ses_topic_arn' => EscalatedSettings::get('ses_topic_arn', config('escalated.inbound_email.ses.topic_arn', '')),
             'imap_host' => EscalatedSettings::get('imap_host', config('escalated.inbound_email.imap.host', '')),
             'imap_port' => EscalatedSettings::getInt('imap_port', (int) config('escalated.inbound_email.imap.port', 993)),
             'imap_encryption' => EscalatedSettings::get('imap_encryption', config('escalated.inbound_email.imap.encryption', 'ssl')),
             'imap_username' => EscalatedSettings::get('imap_username', config('escalated.inbound_email.imap.username', '')),
-            'imap_password' => EscalatedSettings::get('imap_password', config('escalated.inbound_email.imap.password', '')),
+            'imap_password' => $this->maskSecret(EscalatedSettings::get('imap_password', config('escalated.inbound_email.imap.password', ''))),
             'imap_mailbox' => EscalatedSettings::get('imap_mailbox', config('escalated.inbound_email.imap.mailbox', 'INBOX')),
         ];
+    }
+
+    /**
+     * Check if a value looks like a masked placeholder (contains only * after optional prefix).
+     */
+    protected function isMaskedValue(?string $value): bool
+    {
+        if (empty($value)) {
+            return false;
+        }
+
+        // Masked values have the format: 3 chars + asterisks, or all asterisks
+        return (bool) preg_match('/^.{0,3}\*{3,}$/', $value);
+    }
+
+    /**
+     * Mask a secret value for display — shows whether it's set without exposing the value.
+     */
+    protected function maskSecret(?string $value): string
+    {
+        if (empty($value)) {
+            return '';
+        }
+
+        $len = strlen($value);
+
+        if ($len <= 6) {
+            return str_repeat('*', $len);
+        }
+
+        return substr($value, 0, 3).str_repeat('*', min($len - 3, 12));
     }
 }

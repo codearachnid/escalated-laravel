@@ -94,13 +94,17 @@ class SesAdapter implements InboundAdapter
     {
         $payload = $request->json()->all();
 
-        // Verify the TopicArn matches configuration
+        // Verify the TopicArn matches configuration (required — reject if not configured)
         $configuredArn = EscalatedSettings::get('ses_topic_arn', config('escalated.inbound_email.ses.topic_arn'));
-        if (! empty($configuredArn)) {
-            $topicArn = $payload['TopicArn'] ?? '';
-            if ($topicArn !== $configuredArn) {
-                return false;
-            }
+        if (empty($configuredArn)) {
+            Log::warning('Escalated: SES Topic ARN not configured — rejecting request.');
+
+            return false;
+        }
+
+        $topicArn = $payload['TopicArn'] ?? '';
+        if ($topicArn !== $configuredArn) {
+            return false;
         }
 
         // Verify the SNS message signature
@@ -109,18 +113,32 @@ class SesAdapter implements InboundAdapter
 
     /**
      * Confirm an SNS subscription by visiting the SubscribeURL.
+     * Validates the URL is a legitimate Amazon SNS endpoint before fetching (SSRF prevention).
      */
     protected function confirmSubscription(array $payload): void
     {
         $subscribeUrl = $payload['SubscribeURL'] ?? null;
 
-        if ($subscribeUrl) {
-            try {
-                Http::get($subscribeUrl);
-                Log::info('Escalated: SNS subscription confirmed.', ['topic' => $payload['TopicArn'] ?? 'unknown']);
-            } catch (\Throwable $e) {
-                Log::error('Escalated: Failed to confirm SNS subscription.', ['error' => $e->getMessage()]);
-            }
+        if (! $subscribeUrl || ! $this->isValidSnsUrl($subscribeUrl)) {
+            Log::warning('Escalated: Rejected SNS SubscribeURL — not a valid Amazon SNS URL.', [
+                'url' => $subscribeUrl ?? '(none)',
+            ]);
+
+            return;
+        }
+
+        // Verify the subscription confirmation signature before confirming
+        if (! $this->verifySnsSignature($payload)) {
+            Log::warning('Escalated: Rejected SNS subscription confirmation — invalid signature.');
+
+            return;
+        }
+
+        try {
+            Http::get($subscribeUrl);
+            Log::info('Escalated: SNS subscription confirmed.', ['topic' => $payload['TopicArn'] ?? 'unknown']);
+        } catch (\Throwable $e) {
+            Log::error('Escalated: Failed to confirm SNS subscription.', ['error' => $e->getMessage()]);
         }
     }
 

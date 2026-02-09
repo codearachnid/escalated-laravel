@@ -62,9 +62,9 @@ class PostmarkAdapter implements InboundAdapter
     {
         $configuredToken = EscalatedSettings::get('postmark_inbound_token', config('escalated.inbound_email.postmark.token'));
 
-        // If no token is configured, skip verification (not recommended for production)
+        // Reject if no token is configured — require explicit configuration
         if (empty($configuredToken)) {
-            return true;
+            return false;
         }
 
         // Check the X-Postmark-Token header (custom header sent by Postmark if configured)

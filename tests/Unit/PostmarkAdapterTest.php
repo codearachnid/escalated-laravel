@@ -92,12 +92,12 @@ it('rejects invalid postmark token', function () {
     expect($adapter->verifyRequest($request))->toBeFalse();
 });
 
-it('allows request when no postmark token is configured', function () {
+it('rejects request when no postmark token is configured', function () {
     config(['escalated.inbound_email.postmark.token' => null]);
 
     $adapter = new PostmarkAdapter();
 
     $request = Request::create('/inbound/postmark', 'POST');
 
-    expect($adapter->verifyRequest($request))->toBeTrue();
+    expect($adapter->verifyRequest($request))->toBeFalse();
 });

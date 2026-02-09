@@ -80,6 +80,10 @@ class ImapAdapter implements InboundAdapter
             $flags .= '/novalidate-cert';
         }
 
+        // Sanitize host and mailbox to prevent injection via } or other control characters
+        $host = preg_replace('/[{}\/\\\\\x00-\x1f]/', '', $host);
+        $mailbox = preg_replace('/[{}\x00-\x1f]/', '', $mailbox);
+
         return "{{$host}:{$port}{$flags}}{$mailbox}";
     }
 

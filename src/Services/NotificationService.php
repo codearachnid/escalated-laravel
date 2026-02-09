@@ -14,11 +14,24 @@ class NotificationService
             return;
         }
 
-        Http::timeout(10)->post($url, [
+        $body = [
             'event' => $event,
             'payload' => $payload,
             'timestamp' => now()->toISOString(),
-        ]);
+        ];
+
+        $request = Http::timeout(10);
+
+        // Sign the webhook payload if a secret is configured
+        $secret = config('escalated.notifications.webhook_secret');
+        if (! empty($secret)) {
+            $signature = hash_hmac('sha256', json_encode($body), $secret);
+            $request = $request->withHeaders([
+                'X-Escalated-Signature' => $signature,
+            ]);
+        }
+
+        $request->post($url, $body);
     }
 
     public function getConfiguredChannels(): array

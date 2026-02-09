@@ -192,7 +192,7 @@ it('logs inbound email record even on failure', function () {
     expect($inbound->adapter)->toBe('mailgun');
 });
 
-it('uses html body when text body is empty', function () {
+it('uses sanitized html body when text body is empty', function () {
     $service = app(InboundEmailService::class);
     $message = new InboundMessage(
         fromEmail: 'nobody@unknown.com',
@@ -206,7 +206,28 @@ it('uses html body when text body is empty', function () {
     $inbound = $service->process($message, 'postmark');
 
     $ticket = Ticket::find($inbound->ticket_id);
-    expect($ticket->description)->toBe('Hello world');
+    // Sanitized HTML preserves safe tags like <p> and <b>
+    expect($ticket->description)->toBe('<p>Hello <b>world</b></p>');
+});
+
+it('strips dangerous tags from html body', function () {
+    $service = app(InboundEmailService::class);
+    $message = new InboundMessage(
+        fromEmail: 'nobody@unknown.com',
+        fromName: null,
+        toEmail: 'support@example.com',
+        subject: 'XSS email',
+        bodyText: null,
+        bodyHtml: '<p>Hello</p><script>alert("xss")</script><img src=x onerror="alert(1)">',
+    );
+
+    $inbound = $service->process($message, 'postmark');
+
+    $ticket = Ticket::find($inbound->ticket_id);
+    // Script tags and event handlers must be stripped
+    expect($ticket->description)->not->toContain('<script>');
+    expect($ticket->description)->not->toContain('onerror');
+    expect($ticket->description)->toContain('<p>Hello</p>');
 });
 
 it('sanitizes subject by removing RE/FW prefixes', function () {

@@ -19,6 +19,11 @@ use Illuminate\Support\Str;
 
 class InboundEmailService
 {
+    /**
+     * Allowed HTML tags for inbound email body sanitization.
+     */
+    protected const ALLOWED_TAGS = '<p><br><b><strong><i><em><u><a><ul><ol><li><h1><h2><h3><h4><h5><h6><blockquote><pre><code><table><thead><tbody><tr><th><td><img><hr><div><span><sub><sup>';
+
     public function __construct(
         protected TicketService $ticketService,
         protected AttachmentService $attachmentService,
@@ -154,7 +159,7 @@ class InboundEmailService
      */
     protected function addReplyToTicket(Ticket $ticket, InboundMessage $message, ?Ticketable $user): Reply
     {
-        $body = $message->getBody();
+        $body = $this->getSanitizedBody($message);
 
         if ($user) {
             // Authenticated user reply — use the TicketService so events fire properly
@@ -197,7 +202,7 @@ class InboundEmailService
      */
     protected function createNewTicket(InboundMessage $message, ?Ticketable $user): Ticket
     {
-        $body = $message->getBody();
+        $body = $this->getSanitizedBody($message);
 
         if ($user) {
             // Authenticated user — use TicketService so events and activity logging fire
@@ -244,7 +249,7 @@ class InboundEmailService
             'to_email' => $message->toEmail,
             'subject' => $message->subject,
             'body_text' => $message->bodyText,
-            'body_html' => $message->bodyHtml,
+            'body_html' => $this->sanitizeHtml($message->bodyHtml),
             'raw_headers' => $message->getRawHeadersString(),
             'status' => 'pending',
             'adapter' => $adapter,
@@ -261,6 +266,18 @@ class InboundEmailService
             ->where('status', 'processed')
             ->exists();
     }
+
+    /**
+     * Dangerous file extensions that should never be accepted from inbound emails.
+     */
+    protected const BLOCKED_EXTENSIONS = [
+        'exe', 'bat', 'cmd', 'com', 'msi', 'scr', 'pif', 'vbs', 'vbe',
+        'js', 'jse', 'wsf', 'wsh', 'ps1', 'psm1', 'psd1', 'reg',
+        'cpl', 'hta', 'inf', 'lnk', 'sct', 'shb', 'sys', 'drv',
+        'php', 'phtml', 'php3', 'php4', 'php5', 'phar',
+        'sh', 'bash', 'csh', 'ksh', 'pl', 'py', 'rb',
+        'dll', 'so', 'dylib',
+    ];
 
     /**
      * Store email attachments from raw content to disk and create Attachment records.
@@ -297,7 +314,18 @@ class InboundEmailService
                 continue;
             }
 
-            $extension = pathinfo($attachment['filename'] ?? '', PATHINFO_EXTENSION) ?: 'bin';
+            $extension = strtolower(pathinfo($attachment['filename'] ?? '', PATHINFO_EXTENSION) ?: 'bin');
+
+            // Block dangerous file extensions
+            if (in_array($extension, self::BLOCKED_EXTENSIONS, true)) {
+                Log::info('Escalated: Blocked dangerous inbound attachment.', [
+                    'filename' => $attachment['filename'] ?? 'unknown',
+                    'extension' => $extension,
+                ]);
+
+                continue;
+            }
+
             $filename = Str::uuid().'.'.$extension;
             $path = $basePath.'/'.$filename;
 
@@ -335,6 +363,55 @@ class InboundEmailService
         $cleaned = preg_replace('/\['.preg_quote($prefix, '/').'-\d+\]\s*/', '', $cleaned);
 
         return trim($cleaned) ?: '(No Subject)';
+    }
+
+    /**
+     * Sanitize HTML content from inbound emails to prevent XSS.
+     * Strips dangerous tags/attributes while keeping safe formatting.
+     */
+    protected function sanitizeHtml(?string $html): ?string
+    {
+        if ($html === null || trim($html) === '') {
+            return $html;
+        }
+
+        // Strip all tags except allowed safe formatting tags
+        $clean = strip_tags($html, self::ALLOWED_TAGS);
+
+        // Remove event handler attributes (onclick, onerror, onload, etc.)
+        $clean = preg_replace('/\s+on\w+\s*=\s*["\'][^"\']*["\']/i', '', $clean);
+        $clean = preg_replace('/\s+on\w+\s*=\s*\S+/i', '', $clean);
+
+        // Remove javascript: protocol from href/src/action attributes
+        $clean = preg_replace('/\b(href|src|action)\s*=\s*["\']?\s*javascript\s*:/i', '$1="', $clean);
+
+        // Remove data: URLs with script content (allow data:image)
+        $clean = preg_replace('/\b(href|src|action)\s*=\s*["\']?\s*data\s*:(?!image\/)/i', '$1="', $clean);
+
+        // Remove style attributes containing expression() or url(javascript:)
+        $clean = preg_replace('/style\s*=\s*["\'][^"\']*expression\s*\([^"\']*["\']/i', '', $clean);
+        $clean = preg_replace('/style\s*=\s*["\'][^"\']*url\s*\(\s*["\']?\s*javascript:[^"\']*["\']/i', '', $clean);
+
+        return $clean;
+    }
+
+    /**
+     * Get sanitized body content from an inbound message.
+     * Prefers text body over HTML for safety; sanitizes HTML if used.
+     */
+    protected function getSanitizedBody(InboundMessage $message): string
+    {
+        // Prefer plain text — no XSS risk
+        if (! empty($message->bodyText)) {
+            return $message->bodyText;
+        }
+
+        // Fall back to sanitized HTML
+        if (! empty($message->bodyHtml)) {
+            return $this->sanitizeHtml($message->bodyHtml) ?? '';
+        }
+
+        return '';
     }
 
     /**
