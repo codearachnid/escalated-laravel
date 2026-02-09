@@ -25,6 +25,9 @@ class AdminSettingsController extends Controller
             'max_attachments_per_reply' => ['required', 'integer', 'min:1', 'max:20'],
             'max_attachment_size_kb' => ['required', 'integer', 'min:512', 'max:102400'],
             'ticket_reference_prefix' => ['required', 'string', 'max:10', 'alpha_num'],
+            'inbound_email_enabled' => ['sometimes', 'boolean'],
+            'inbound_email_adapter' => ['sometimes', 'string', 'in:mailgun,postmark,ses,imap'],
+            'inbound_email_address' => ['sometimes', 'nullable', 'email', 'max:255'],
         ]);
 
         foreach ($validated as $key => $value) {
@@ -43,6 +46,9 @@ class AdminSettingsController extends Controller
             'max_attachments_per_reply' => EscalatedSettings::getInt('max_attachments_per_reply', 5),
             'max_attachment_size_kb' => EscalatedSettings::getInt('max_attachment_size_kb', 10240),
             'ticket_reference_prefix' => EscalatedSettings::get('ticket_reference_prefix', 'ESC'),
+            'inbound_email_enabled' => EscalatedSettings::getBool('inbound_email_enabled', false),
+            'inbound_email_adapter' => EscalatedSettings::get('inbound_email_adapter', config('escalated.inbound_email.adapter', 'mailgun')),
+            'inbound_email_address' => EscalatedSettings::get('inbound_email_address', config('escalated.inbound_email.address', '')),
         ];
     }
 }

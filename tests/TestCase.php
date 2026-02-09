@@ -30,6 +30,7 @@ abstract class TestCase extends BaseTestCase
         $app['config']->set('escalated.mode', 'self-hosted');
         $app['config']->set('escalated.user_model', TestUser::class);
         $app['config']->set('escalated.routes.enabled', true);
+        $app['config']->set('escalated.inbound_email.enabled', true);
     }
 
     protected function defineDatabaseMigrations(): void

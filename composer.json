@@ -26,7 +26,8 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "Escalated\\Laravel\\Tests\\": "tests/"
+            "Escalated\\Laravel\\Tests\\": "tests/",
+            "Escalated\\Laravel\\Database\\Factories\\": "database/factories/"
         }
     },
     "extra": {
