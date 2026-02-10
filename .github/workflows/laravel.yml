@@ -31,27 +31,22 @@ jobs:
           composer config repositories.escalated path ../escalated-laravel
           composer require escalated-dev/escalated-laravel:@dev --no-interaction
 
-      - name: Install Pest + compatible PHPUnit in host
+      - name: Install package test dependencies
         working-directory: laravel
         run: |
-          composer require phpunit/phpunit:^12.5 \
-            pestphp/pest:^4.3 \
-            pestphp/pest-plugin-laravel:^4.0 \
-            --dev \
-            --with-all-dependencies \
-            --no-interaction
+          composer require orchestra/testbench:^10.0 inertiajs/inertia-laravel:^2.0 --dev --no-interaction
 
-      - name: Prepare Laravel environment
+      - name: Register package test autoloading
         working-directory: laravel
         run: |
-          cp .env.example .env
-          php artisan key:generate
-          mkdir -p database
-          touch database/database.sqlite
+          php -r "
+            \$c = json_decode(file_get_contents('composer.json'), true);
+            \$c['autoload-dev']['psr-4']['Escalated\\\\Laravel\\\\Tests\\\\'] = '../escalated-laravel/tests/';
+            \$c['autoload-dev']['psr-4']['Escalated\\\\Laravel\\\\Database\\\\Factories\\\\'] = '../escalated-laravel/database/factories/';
+            file_put_contents('composer.json', json_encode(\$c, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+          "
+          composer dump-autoload
 
-      - name: Run escalated package tests (Pest)
+      - name: Run escalated package tests
         working-directory: laravel
-        env:
-          DB_CONNECTION: sqlite
-          DB_DATABASE: database/database.sqlite
         run: vendor/bin/pest ../escalated-laravel/tests
