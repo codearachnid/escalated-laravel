@@ -1,4 +1,4 @@
-name: escalated-laravel tests
+name: run-tests
 
 on:
   push:
@@ -9,49 +9,34 @@ on:
 jobs:
   tests:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: [8.3, 8.2]
+        laravel: [^12.0, ^11.0]
+        include:
+          - laravel: ^12.0
+            testbench: 10.*
+          - laravel: ^11.0
+            testbench: 9.*
+
+    name: P${{ matrix.php }} - L${{ matrix.laravel }}
 
     steps:
-      - name: Checkout escalated-laravel
+      - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          path: escalated-laravel
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.3'
+          php-version: ${{ matrix.php }}
+          extensions: dom, curl, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite
           coverage: none
 
-      - name: Create Laravel host application
-        run: composer create-project laravel/laravel laravel --no-interaction
-
-      - name: Install escalated-laravel into host
-        working-directory: laravel
+      - name: Install dependencies
         run: |
-          composer config repositories.escalated path ../escalated-laravel
-          composer require escalated-dev/escalated-laravel:@dev --no-interaction
+          composer require "laravel/framework:${{ matrix.laravel }}" "orchestra/testbench:${{ matrix.testbench }}" --no-interaction --no-update
+          composer update --prefer-stable --prefer-dist --no-interaction
 
-      - name: Install Pest + compatible PHPUnit in host
-        working-directory: laravel
-        run: |
-          composer require phpunit/phpunit:^12.5 \
-            pestphp/pest:^4.3 \
-            pestphp/pest-plugin-laravel:^4.0 \
-            --dev \
-            --with-all-dependencies \
-            --no-interaction
-
-      - name: Prepare Laravel environment
-        working-directory: laravel
-        run: |
-          cp .env.example .env
-          php artisan key:generate
-          mkdir -p database
-          touch database/database.sqlite
-
-      - name: Run escalated package tests (Pest)
-        working-directory: laravel
-        env:
-          DB_CONNECTION: sqlite
-          DB_DATABASE: database/database.sqlite
-        run: vendor/bin/pest ../escalated-laravel/tests
+      - name: Execute tests
+        run: vendor/bin/pest
