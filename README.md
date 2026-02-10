@@ -21,6 +21,18 @@ A full-featured, embeddable support ticket system for Laravel. Drop it into any 
 - **Inbound email** — Create and reply to tickets via email (Mailgun, Postmark, AWS SES, IMAP)
 - **Inertia.js + Vue 3 UI** — Shared frontend via [`@escalated-dev/escalated`](https://github.com/escalated-dev/escalated)
 
+### v0.4.0 — Advanced Features
+
+- **Bulk actions** — Assign, change status/priority, add tags, close, or delete multiple tickets at once
+- **Macros** — Reusable multi-step automations (set status + assign + add note in one click)
+- **Ticket followers** — Agents follow tickets and receive the same notifications as the assignee
+- **Satisfaction ratings** — 1-5 star CSAT ratings with optional comments after resolution
+- **Pinned notes** — Pin important internal notes to the top of the ticket thread
+- **Keyboard shortcuts** — Full keyboard navigation for power users
+- **Quick filters** — One-click filter chips (My Tickets, Unassigned, Urgent, SLA Breaching)
+- **Presence indicators** — See who else is viewing a ticket in real-time
+- **Enhanced dashboard** — CSAT metrics, resolution times, SLA breach tracking
+
 ## Requirements
 
 - PHP 8.2+
@@ -480,6 +492,12 @@ class MyAdapter implements InboundAdapter
 | `/support/inbound/mailgun` | POST | Mailgun inbound webhook |
 | `/support/inbound/postmark` | POST | Postmark inbound webhook |
 | `/support/inbound/ses` | POST | SES/SNS inbound webhook |
+| `/support/agent/tickets/bulk` | POST | Bulk actions on multiple tickets |
+| `/support/agent/tickets/{ticket}/follow` | POST | Follow/unfollow a ticket |
+| `/support/agent/tickets/{ticket}/macro` | POST | Apply a macro to a ticket |
+| `/support/agent/tickets/{ticket}/presence` | POST | Update presence on a ticket |
+| `/support/agent/tickets/{ticket}/pin/{reply}` | POST | Pin/unpin an internal note |
+| `/support/{ticket}/rate` | POST | Submit satisfaction rating |
 
 All routes use the configurable prefix (default: `support`). Inbound webhook routes use the `api` middleware (no auth, no CSRF).
 
@@ -499,6 +517,17 @@ All routes use the configurable prefix (default: `support`). Inbound webhook rou
 composer install
 vendor/bin/pest
 ```
+
+## Also Available For
+
+- **[Escalated for Laravel](https://github.com/escalated-dev/escalated-laravel)** — Laravel Composer package (you are here)
+- **[Escalated for Rails](https://github.com/escalated-dev/escalated-rails)** — Ruby on Rails engine
+- **[Escalated for Django](https://github.com/escalated-dev/escalated-django)** — Django reusable app
+- **[Escalated for AdonisJS](https://github.com/escalated-dev/escalated-adonis)** — AdonisJS v6 package
+- **[Escalated for Filament](https://github.com/escalated-dev/escalated-filament)** — Filament v3 admin panel plugin
+- **[Shared Frontend](https://github.com/escalated-dev/escalated)** — Vue 3 + Inertia.js UI components
+
+Same architecture, same Vue UI, same three hosting modes — for every major backend framework.
 
 ## License
 
