@@ -43,6 +43,8 @@ class EscalatedServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        $this->loadTranslationsFrom(__DIR__.'/../resources/lang', 'escalated');
+
         $this->registerPublishing();
         $this->registerRoutes();
         $this->registerCommands();
@@ -72,6 +74,10 @@ class EscalatedServiceProvider extends ServiceProvider
         $this->publishes([
             __DIR__.'/../resources/views' => resource_path('views/vendor/escalated'),
         ], 'escalated-views');
+
+        $this->publishes([
+            __DIR__.'/../resources/lang' => $this->app->langPath('vendor/escalated'),
+        ], 'escalated-lang');
     }
 
     protected function registerRoutes(): void
