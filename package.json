@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "@escalated-dev/escalated": "^0.6.0"
+  }
+}
