@@ -1,10 +1,18 @@
 <?php
 
+use Escalated\Laravel\Http\Controllers\Admin\ArticleCategoryController;
+use Escalated\Laravel\Http\Controllers\Admin\ArticleController;
 use Escalated\Laravel\Http\Controllers\Admin\AuditLogController;
 use Escalated\Laravel\Http\Controllers\Admin\AutomationController;
 use Escalated\Laravel\Http\Controllers\Admin\CapacityController;
 use Escalated\Laravel\Http\Controllers\Admin\BusinessHoursController;
 use Escalated\Laravel\Http\Controllers\Admin\CannedResponseController;
+use Escalated\Laravel\Http\Controllers\Admin\CustomObjectController;
+use Escalated\Laravel\Http\Controllers\Admin\CsatSettingsController;
+use Escalated\Laravel\Http\Controllers\Admin\DataRetentionController;
+use Escalated\Laravel\Http\Controllers\Admin\EmailSettingsController;
+use Escalated\Laravel\Http\Controllers\Admin\SsoSettingsController;
+use Escalated\Laravel\Http\Controllers\Admin\TwoFactorController;
 use Escalated\Laravel\Http\Controllers\Admin\CustomFieldController;
 use Escalated\Laravel\Http\Controllers\Admin\DepartmentController;
 use Escalated\Laravel\Http\Controllers\Admin\EscalationRuleController;
@@ -143,4 +151,49 @@ Route::middleware(array_merge(config('escalated.routes.admin_middleware', ['web'
             ->name('escalated.admin.webhooks.deliveries');
         Route::post('/webhooks/deliveries/{delivery}/retry', [WebhookController::class, 'retry'])
             ->name('escalated.admin.webhooks.retry');
+
+        // Knowledge Base
+        Route::resource('kb-articles', ArticleController::class)
+            ->names('escalated.admin.kb-articles')
+            ->except(['show']);
+        Route::resource('kb-categories', ArticleCategoryController::class)
+            ->names('escalated.admin.kb-categories')
+            ->except(['show', 'create', 'edit']);
+
+        // Reports sub-pages
+        Route::get('/reports/dashboard', [ReportController::class, 'dashboard'])->name('escalated.admin.reports.dashboard');
+        Route::get('/reports/agents', [ReportController::class, 'agents'])->name('escalated.admin.reports.agents');
+        Route::get('/reports/sla', [ReportController::class, 'sla'])->name('escalated.admin.reports.sla');
+        Route::get('/reports/csat', [ReportController::class, 'csat'])->name('escalated.admin.reports.csat');
+
+        // CSAT Settings
+        Route::get('/settings/csat', [CsatSettingsController::class, 'index'])->name('escalated.admin.settings.csat');
+        Route::post('/settings/csat', [CsatSettingsController::class, 'update'])->name('escalated.admin.settings.csat.update');
+
+        // SSO Settings
+        Route::get('/settings/sso', [SsoSettingsController::class, 'index'])->name('escalated.admin.settings.sso');
+        Route::post('/settings/sso', [SsoSettingsController::class, 'update'])->name('escalated.admin.settings.sso.update');
+
+        // Two-Factor Authentication
+        Route::get('/settings/two-factor', [TwoFactorController::class, 'index'])->name('escalated.admin.two-factor.index');
+        Route::post('/settings/two-factor/setup', [TwoFactorController::class, 'setup'])->name('escalated.admin.two-factor.setup');
+        Route::post('/settings/two-factor/confirm', [TwoFactorController::class, 'confirm'])->name('escalated.admin.two-factor.confirm');
+        Route::post('/settings/two-factor/disable', [TwoFactorController::class, 'disable'])->name('escalated.admin.two-factor.disable');
+
+        // Data Retention
+        Route::get('/settings/data-retention', [DataRetentionController::class, 'index'])->name('escalated.admin.settings.data-retention');
+        Route::post('/settings/data-retention', [DataRetentionController::class, 'update'])->name('escalated.admin.settings.data-retention.update');
+
+        // Email Channel Settings
+        Route::get('/settings/email', [EmailSettingsController::class, 'index'])->name('escalated.admin.settings.email');
+        Route::post('/settings/email', [EmailSettingsController::class, 'update'])->name('escalated.admin.settings.email.update');
+
+        // Custom Objects
+        Route::resource('custom-objects', CustomObjectController::class)
+            ->names('escalated.admin.custom-objects')
+            ->except(['show']);
+        Route::get('/custom-objects/{customObject}/records', [CustomObjectController::class, 'records'])->name('escalated.admin.custom-objects.records');
+        Route::post('/custom-objects/{customObject}/records', [CustomObjectController::class, 'storeRecord'])->name('escalated.admin.custom-objects.records.store');
+        Route::put('/custom-objects/{customObject}/records/{record}', [CustomObjectController::class, 'updateRecord'])->name('escalated.admin.custom-objects.records.update');
+        Route::delete('/custom-objects/{customObject}/records/{record}', [CustomObjectController::class, 'destroyRecord'])->name('escalated.admin.custom-objects.records.destroy');
     });
