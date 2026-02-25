@@ -10,6 +10,7 @@ use Escalated\Laravel\Http\Controllers\Admin\MacroController;
 use Escalated\Laravel\Http\Controllers\Admin\ReportController;
 use Escalated\Laravel\Http\Controllers\Admin\RoleController;
 use Escalated\Laravel\Http\Controllers\Admin\SettingsController;
+use Escalated\Laravel\Http\Controllers\Admin\SkillController;
 use Escalated\Laravel\Http\Controllers\Admin\SlaPolicyController;
 use Escalated\Laravel\Http\Controllers\Admin\StatusController;
 use Escalated\Laravel\Http\Controllers\Admin\TagController;
@@ -116,4 +117,9 @@ Route::middleware(array_merge(config('escalated.routes.admin_middleware', ['web'
         // Audit Log
         Route::get('/audit-log', [AuditLogController::class, 'index'])
             ->name('escalated.admin.audit-log');
+
+        // Skills
+        Route::resource('skills', SkillController::class)
+            ->names('escalated.admin.skills')
+            ->except(['show']);
     });
