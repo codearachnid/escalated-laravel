@@ -9,6 +9,7 @@ use Escalated\Laravel\Console\Commands\InstallCommand;
 use Escalated\Laravel\Console\Commands\PluginCommand;
 use Escalated\Laravel\Console\Commands\PollImapCommand;
 use Escalated\Laravel\Console\Commands\PurgeActivitiesCommand;
+use Escalated\Laravel\Console\Commands\RunAutomationsCommand;
 use Escalated\Laravel\Events;
 use Escalated\Laravel\Listeners;
 use Escalated\Laravel\Models\AgentProfile;
@@ -141,6 +142,7 @@ class EscalatedServiceProvider extends ServiceProvider
             CloseResolvedCommand::class,
             PurgeActivitiesCommand::class,
             PollImapCommand::class,
+            RunAutomationsCommand::class,
         ]);
     }
 

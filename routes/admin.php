@@ -1,6 +1,7 @@
 <?php
 
 use Escalated\Laravel\Http\Controllers\Admin\AuditLogController;
+use Escalated\Laravel\Http\Controllers\Admin\AutomationController;
 use Escalated\Laravel\Http\Controllers\Admin\CapacityController;
 use Escalated\Laravel\Http\Controllers\Admin\BusinessHoursController;
 use Escalated\Laravel\Http\Controllers\Admin\CannedResponseController;
@@ -128,6 +129,11 @@ Route::middleware(array_merge(config('escalated.routes.admin_middleware', ['web'
         // Agent Capacity
         Route::get('/capacity', [CapacityController::class, 'index'])->name('escalated.admin.capacity.index');
         Route::put('/capacity/{capacity}', [CapacityController::class, 'update'])->name('escalated.admin.capacity.update');
+
+        // Automations
+        Route::resource('automations', AutomationController::class)
+            ->names('escalated.admin.automations')
+            ->except(['show']);
 
         // Webhooks
         Route::resource('webhooks', WebhookController::class)
