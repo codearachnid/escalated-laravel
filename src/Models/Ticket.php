@@ -112,6 +112,11 @@ class Ticket extends Model
         return $this->hasOne(SatisfactionRating::class, 'ticket_id');
     }
 
+    public function sideConversations(): HasMany
+    {
+        return $this->hasMany(SideConversation::class, 'ticket_id');
+    }
+
     public function linksAsParent(): HasMany
     {
         return $this->hasMany(TicketLink::class, 'parent_ticket_id');

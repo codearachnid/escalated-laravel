@@ -13,6 +13,7 @@ use Escalated\Laravel\Http\Controllers\Admin\SettingsController;
 use Escalated\Laravel\Http\Controllers\Admin\SlaPolicyController;
 use Escalated\Laravel\Http\Controllers\Admin\StatusController;
 use Escalated\Laravel\Http\Controllers\Admin\TagController;
+use Escalated\Laravel\Http\Controllers\Admin\SideConversationController;
 use Escalated\Laravel\Http\Controllers\Admin\TicketController;
 use Escalated\Laravel\Http\Controllers\Admin\TicketLinkController;
 use Escalated\Laravel\Http\Controllers\Admin\TicketMergeController;
@@ -50,6 +51,12 @@ Route::middleware(array_merge(config('escalated.routes.admin_middleware', ['web'
             Route::get('/tickets/{ticket}/links', [TicketLinkController::class, 'index'])->name('escalated.admin.tickets.links.index');
             Route::post('/tickets/{ticket}/links', [TicketLinkController::class, 'store'])->name('escalated.admin.tickets.links.store');
             Route::delete('/tickets/{ticket}/links/{link}', [TicketLinkController::class, 'destroy'])->name('escalated.admin.tickets.links.destroy');
+
+            // Side Conversations
+            Route::get('/tickets/{ticket}/side-conversations', [SideConversationController::class, 'index'])->name('escalated.admin.tickets.side-conversations.index');
+            Route::post('/tickets/{ticket}/side-conversations', [SideConversationController::class, 'store'])->name('escalated.admin.tickets.side-conversations.store');
+            Route::post('/tickets/{ticket}/side-conversations/{sideConversation}/reply', [SideConversationController::class, 'reply'])->name('escalated.admin.tickets.side-conversations.reply');
+            Route::post('/tickets/{ticket}/side-conversations/{sideConversation}/close', [SideConversationController::class, 'close'])->name('escalated.admin.tickets.side-conversations.close');
         });
 
         Route::get('/settings', [SettingsController::class, 'index'])->name('escalated.admin.settings');
