@@ -21,6 +21,7 @@ return [
     |--------------------------------------------------------------------------
     */
     'user_model' => env('ESCALATED_USER_MODEL', 'App\\Models\\User'),
+    'user_display_column' => env('ESCALATED_USER_DISPLAY_COLUMN', 'name'),
 
     /*
     |--------------------------------------------------------------------------
