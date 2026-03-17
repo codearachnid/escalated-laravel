@@ -4,11 +4,16 @@ namespace Escalated\Laravel\Listeners;
 
 use Escalated\Laravel\Events\TicketCreated;
 use Escalated\Laravel\Notifications\NewTicketNotification;
+use Escalated\Laravel\Support\ImportContext;
 
 class SendNewTicketNotifications
 {
     public function handle(TicketCreated $event): void
     {
+        if (ImportContext::isImporting()) {
+            return;
+        }
+
         $ticket = $event->ticket;
 
         // Notify the requester

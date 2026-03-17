@@ -2,14 +2,19 @@
 
 namespace Escalated\Laravel\Listeners;
 
+use Escalated\Laravel\Escalated;
 use Escalated\Laravel\Events\TicketAssigned;
 use Escalated\Laravel\Notifications\TicketAssignedNotification;
-use Escalated\Laravel\Escalated;
+use Escalated\Laravel\Support\ImportContext;
 
 class SendAssignmentNotification
 {
     public function handle(TicketAssigned $event): void
     {
+        if (ImportContext::isImporting()) {
+            return;
+        }
+
         $userModel = Escalated::userModel();
         $agent = $userModel::find($event->agentId);
 

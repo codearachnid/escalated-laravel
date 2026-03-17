@@ -4,11 +4,16 @@ namespace Escalated\Laravel\Listeners;
 
 use Escalated\Laravel\Events\TicketStatusChanged;
 use Escalated\Laravel\Notifications\TicketStatusChangedNotification;
+use Escalated\Laravel\Support\ImportContext;
 
 class SendStatusChangeNotification
 {
     public function handle(TicketStatusChanged $event): void
     {
+        if (ImportContext::isImporting()) {
+            return;
+        }
+
         $ticket = $event->ticket;
 
         if ($requester = $ticket->requester) {

@@ -4,11 +4,16 @@ namespace Escalated\Laravel\Listeners;
 
 use Escalated\Laravel\Events\ReplyCreated;
 use Escalated\Laravel\Notifications\TicketReplyNotification;
+use Escalated\Laravel\Support\ImportContext;
 
 class SendReplyNotifications
 {
     public function handle(ReplyCreated $event): void
     {
+        if (ImportContext::isImporting()) {
+            return;
+        }
+
         $reply = $event->reply;
         $ticket = $reply->ticket;
 

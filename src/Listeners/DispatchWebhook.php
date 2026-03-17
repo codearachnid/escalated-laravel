@@ -4,6 +4,7 @@ namespace Escalated\Laravel\Listeners;
 
 use Escalated\Laravel\Events;
 use Escalated\Laravel\Services\NotificationService;
+use Escalated\Laravel\Support\ImportContext;
 
 class DispatchWebhook
 {
@@ -11,6 +12,10 @@ class DispatchWebhook
 
     public function handle(object $event): void
     {
+        if (ImportContext::isImporting()) {
+            return;
+        }
+
         $eventName = match (true) {
             $event instanceof Events\TicketCreated => 'ticket.created',
             $event instanceof Events\TicketUpdated => 'ticket.updated',
