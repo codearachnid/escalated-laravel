@@ -2,6 +2,7 @@
 
 namespace Escalated\Laravel;
 
+use Escalated\Laravel\Bridge\PluginBridge;
 use Escalated\Laravel\Console\Commands\CheckSlaCommand;
 use Escalated\Laravel\Console\Commands\CloseResolvedCommand;
 use Escalated\Laravel\Console\Commands\EvaluateEscalationsCommand;
@@ -45,6 +46,13 @@ class EscalatedServiceProvider extends ServiceProvider
         });
 
         $this->app->singleton(\Escalated\Laravel\Services\ImportService::class);
+
+        // Register the plugin bridge as a singleton.
+        // The bridge manages the Node.js plugin runtime subprocess and is
+        // reused for every request in the same PHP-FPM worker.
+        $this->app->singleton(PluginBridge::class, function ($app) {
+            return new PluginBridge();
+        });
     }
 
     public function boot(): void
@@ -56,6 +64,7 @@ class EscalatedServiceProvider extends ServiceProvider
         $this->registerCommands();
         $this->registerEvents();
         $this->loadPlugins();
+        $this->bootPluginBridge();
         $this->shareInertiaData();
     }
 
@@ -149,6 +158,23 @@ class EscalatedServiceProvider extends ServiceProvider
             PurgeExpiredDataCommand::class,
             \Escalated\Laravel\Console\Commands\ImportCommand::class,
         ]);
+    }
+
+    protected function bootPluginBridge(): void
+    {
+        if (! config('escalated.plugins.enabled', true)) {
+            return;
+        }
+
+        try {
+            $bridge = $this->app->make(PluginBridge::class);
+            $bridge->boot();
+        } catch (\Throwable $e) {
+            // Bridge failures must not break the application.
+            \Illuminate\Support\Facades\Log::warning('Escalated: Plugin bridge boot failed', [
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     protected function loadPlugins(): void

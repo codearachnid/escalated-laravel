@@ -1,5 +1,6 @@
 <?php
 
+use Escalated\Laravel\Bridge\PluginBridge;
 use Escalated\Laravel\Facades\Hook;
 
 // ========================================
@@ -24,12 +25,47 @@ if (! function_exists('escalated_do_action')) {
     /**
      * Execute all callbacks for an action.
      *
+     * Dispatches to BOTH the legacy PHP hook system and any SDK-based plugins
+     * registered via the plugin bridge (dual dispatch). This allows old PHP
+     * plugins and new TypeScript SDK plugins to coexist during migration.
+     *
+     * The bridge dispatch is best-effort: if the runtime is unavailable or
+     * times out, only a warning is logged and the PHP hooks still run.
+     *
      * @param string $tag
      * @param mixed ...$args
      */
     function escalated_do_action(string $tag, ...$args): void
     {
+        // 1. Dispatch to legacy PHP plugins
         Hook::doAction($tag, ...$args);
+
+        // 2. Dual-dispatch to SDK plugins via the bridge
+        // The bridge normalises the variadic args into a single event array.
+        // Convention: first arg is the primary payload (e.g. $ticket->toArray()).
+        try {
+            $bridge = app(PluginBridge::class);
+
+            if ($bridge->isBooted()) {
+                $event = [];
+
+                if (count($args) === 1 && is_array($args[0])) {
+                    $event = $args[0];
+                } elseif (count($args) === 1 && is_object($args[0]) && method_exists($args[0], 'toArray')) {
+                    $event = $args[0]->toArray();
+                } elseif (! empty($args)) {
+                    $event = ['args' => $args];
+                }
+
+                $bridge->dispatchAction($tag, $event);
+            }
+        } catch (\Throwable $e) {
+            // Never let bridge errors bubble up into the host application.
+            \Illuminate\Support\Facades\Log::debug('Escalated: bridge action dispatch failed', [
+                'hook'  => $tag,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 }
 
@@ -81,6 +117,14 @@ if (! function_exists('escalated_apply_filters')) {
     /**
      * Apply all callbacks for a filter.
      *
+     * Applies filters through BOTH the legacy PHP hook system and any SDK-based
+     * plugins registered via the plugin bridge (dual dispatch). The value flows
+     * through PHP hooks first, then through the SDK bridge, so SDK plugins see
+     * the PHP-filtered value and can further transform it.
+     *
+     * On bridge timeout or error the bridge step is skipped and the PHP-filtered
+     * value is returned unchanged.
+     *
      * @param string $tag
      * @param mixed $value
      * @param mixed ...$args
@@ -88,7 +132,25 @@ if (! function_exists('escalated_apply_filters')) {
      */
     function escalated_apply_filters(string $tag, mixed $value, ...$args): mixed
     {
-        return Hook::applyFilters($tag, $value, ...$args);
+        // 1. Apply legacy PHP plugin filters
+        $value = Hook::applyFilters($tag, $value, ...$args);
+
+        // 2. Dual-dispatch to SDK plugins via the bridge
+        try {
+            $bridge = app(PluginBridge::class);
+
+            if ($bridge->isBooted()) {
+                $value = $bridge->applyFilter($tag, $value);
+            }
+        } catch (\Throwable $e) {
+            // Never let bridge errors bubble up into the host application.
+            \Illuminate\Support\Facades\Log::debug('Escalated: bridge filter dispatch failed', [
+                'hook'  => $tag,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        return $value;
     }
 }
 
