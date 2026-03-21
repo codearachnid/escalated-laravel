@@ -2,6 +2,7 @@
 
 namespace Escalated\Laravel\Console\Commands;
 
+use Escalated\Laravel\Database\Seeders\PermissionSeeder;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Process;
 
@@ -36,6 +37,7 @@ class InstallCommand extends Command
 
         if ($publishAll) {
             $this->publishEmailViews($force);
+            $this->seedPermissions();
             $this->installNpmPackage();
             $userModelConfigured = $this->configureUserModel();
         }
@@ -72,6 +74,15 @@ class InstallCommand extends Command
             $this->callSilently('vendor:publish', [
                 '--tag' => 'escalated-views',
                 '--force' => $force,
+            ]);
+        });
+    }
+
+    protected function seedPermissions(): void
+    {
+        $this->components->task(__('escalated::commands.install.seeding_permissions', [], 'Seeding permissions and roles'), function () {
+            $this->callSilently('db:seed', [
+                '--class' => PermissionSeeder::class,
             ]);
         });
     }
